@@ -4,7 +4,7 @@ from aiogram.types import ParseMode
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils import executor
 
-API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw 7581874786'
+API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw'
 
 # Настроим логирование
 logging.basicConfig(level=logging.INFO)
