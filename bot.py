@@ -1,34 +1,37 @@
-import asyncio
+import logging
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ParseMode
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.utils import executor
 
-TOKEN = 'ТВОЙ_ТОКЕН'
+API_TOKEN = 'your_token_here'
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+# Настроим логирование
+logging.basicConfig(level=logging.INFO)
 
-# Клавиатура
-keyboard = InlineKeyboardMarkup(row_width=1)
-keyboard.add(
-    InlineKeyboardButton("Вмонтована витяжка Messer Pro - 5000 грн", callback_data="product1"),
-    InlineKeyboardButton("Мішки для витяжки - від 140 грн", callback_data="product2")
-)
+# Создаем объекты бота и диспетчера
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
 
-@dp.message_handler(commands=['start', 'menu'])
-async def start(message: types.Message):
-    await message.answer("Ласкаво просимо! Оберіть товар:", reply_markup=keyboard)
+# Применяем middleware для логирования
+dp.middleware.setup(LoggingMiddleware())
 
-@dp.callback_query_handler(lambda c: c.data)
-async def callback(callback_query: types.CallbackQuery):
-    if callback_query.data == "product1":
-        await bot.send_message(callback_query.from_user.id,
-            "Вмонтована витяжка Messer Pro\n65Вт, регулювання потужності.\nКомплект: 2 змінні мішки.\nЦіна: 5000 грн.")
-    elif callback_query.data == "product2":
-        await bot.send_message(callback_query.from_user.id,
-            "Мішки для витяжки в наявності всі розміри:\n1 шт. - 140 грн\n5 шт. - 550 грн\n10 шт. - 900 грн.")
+# Обработчик команды /start
+@dp.message_handler(commands=['start'])
+async def send_welcome(message: types.Message):
+    await message.reply("Привет! Я твой бот.")
 
-async def main():
-    await dp.start_polling(bot)
+# Обработчик команды /help
+@dp.message_handler(commands=['help'])
+async def send_help(message: types.Message):
+    await message.reply("Я помогу тебе с чем смогу!")
 
+# Обработчик всех текстовых сообщений
+@dp.message_handler()
+async def echo(message: types.Message):
+    await message.answer(f"Ты написал: {message.text}")
+
+# Запуск бота
 if __name__ == '__main__':
-    asyncio.run(main())
+    from aiogram import executor
+    executor.start_polling(dp, skip_updates=True)
