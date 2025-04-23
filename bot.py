@@ -1,11 +1,13 @@
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram import executor
+from aiogram.fsm.context import FSMContext
+from aiogram import types
+from aiogram.utils import executor  # Изменение здесь
 
 TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 # Клавиатура с товарами
 keyboard = InlineKeyboardMarkup(row_width=1)
@@ -27,5 +29,9 @@ async def callback_handler(callback_query: types.CallbackQuery):
         await bot.send_message(callback_query.from_user.id,
             "Мішки для витяжки в наявності всі розміри:\n1 шт. - 140 грн\n5 шт. - 550 грн\n10 шт. - 900 грн.")
 
+async def main():
+    await dp.start_polling(bot)
+
 if __name__ == '__main__':
-    executor.start_polling(dp)
+    import asyncio
+    asyncio.run(main())
