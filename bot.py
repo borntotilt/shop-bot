@@ -1,13 +1,13 @@
+import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import asyncio
 
-TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'
+TOKEN = 'ТВОЙ_ТОКЕН'
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Клавиатура с товарами
+# Клавиатура
 keyboard = InlineKeyboardMarkup(row_width=1)
 keyboard.add(
     InlineKeyboardButton("Вмонтована витяжка Messer Pro - 5000 грн", callback_data="product1"),
@@ -15,11 +15,11 @@ keyboard.add(
 )
 
 @dp.message_handler(commands=['start', 'menu'])
-async def start_command(message: types.Message):
+async def start(message: types.Message):
     await message.answer("Ласкаво просимо! Оберіть товар:", reply_markup=keyboard)
 
 @dp.callback_query_handler(lambda c: c.data)
-async def callback_handler(callback_query: types.CallbackQuery):
+async def callback(callback_query: types.CallbackQuery):
     if callback_query.data == "product1":
         await bot.send_message(callback_query.from_user.id,
             "Вмонтована витяжка Messer Pro\n65Вт, регулювання потужності.\nКомплект: 2 змінні мішки.\nЦіна: 5000 грн.")
@@ -27,7 +27,6 @@ async def callback_handler(callback_query: types.CallbackQuery):
         await bot.send_message(callback_query.from_user.id,
             "Мішки для витяжки в наявності всі розміри:\n1 шт. - 140 грн\n5 шт. - 550 грн\n10 шт. - 900 грн.")
 
-# Запуск бота
 async def main():
     await dp.start_polling(bot)
 
