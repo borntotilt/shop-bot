@@ -1,6 +1,5 @@
 import logging
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ParseMode
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils import executor
 
@@ -33,12 +32,10 @@ async def echo(message: types.Message):
 
 # Удаляем вебхук, если он был установлен
 async def on_start():
-    # Убедимся, что вебхук не установлен
     await bot.delete_webhook()
 
 # Запуск бота
 if __name__ == '__main__':
-    # Важно: вызовем on_start(), чтобы удалить вебхук
     import asyncio
     loop = asyncio.get_event_loop()
     loop.run_until_complete(on_start())
