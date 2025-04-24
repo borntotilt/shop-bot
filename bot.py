@@ -23,6 +23,10 @@ main_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(
     KeyboardButton("❓ Часті питання")
 )
 
+# Кнопка для возврата в главное меню
+back_to_menu_button = KeyboardButton("↩️ Повернутися до меню")
+back_to_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(back_to_menu_button)
+
 # /start
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
@@ -66,6 +70,9 @@ async def send_catalog(message: types.Message):
     )
     await message.answer_photo(photo=photo2, caption=caption2, parse_mode="Markdown", reply_markup=kb2)
 
+    # Кнопка для возврата в меню
+    await message.answer("Щоб повернутися в головне меню, натисни кнопку нижче.", reply_markup=back_to_menu)
+
 # Часті питання
 @dp.message_handler(lambda message: message.text == "❓ Часті питання")
 async def send_faq(message: types.Message):
@@ -78,10 +85,18 @@ async def send_faq(message: types.Message):
     )
     await message.answer(faq, parse_mode="Markdown")
 
+    # Кнопка для возврата в меню
+    await message.answer("Щоб повернутися в головне меню, натисни кнопку нижче.", reply_markup=back_to_menu)
+
 # Обработчик кнопки "Купити"
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith("buy_"))
 async def process_buy_callback(callback_query: types.CallbackQuery):
     await callback_query.answer("Це демо. Купівля ще не реалізована.")
+
+# Обработчик кнопки "Повернутися до меню"
+@dp.message_handler(lambda message: message.text == "↩️ Повернутися до меню")
+async def back_to_menu(message: types.Message):
+    await message.reply("Ти в головному меню:", reply_markup=main_menu)
 
 # Удаление вебхука при старте
 async def on_start():
