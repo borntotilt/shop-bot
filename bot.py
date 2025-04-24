@@ -6,30 +6,36 @@ from aiogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton,
     BotCommand
 )
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher import FSMContext
 from aiogram.utils import executor
+from aiogram.dispatcher import FSMContext
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher.filters.state import State, StatesGroup
 
-API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'  # замените на свой токен
+API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'  # замени на свой токен
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 dp.middleware.setup(LoggingMiddleware())
 
-# Главное меню
+# FSM стан для оформлення замовлення
+class OrderForm(StatesGroup):
+    waiting_for_name = State()
+    waiting_for_phone = State()
+    waiting_for_address = State()
+
+# Меню
 main_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(
     KeyboardButton("🛍️ Каталог товарів"),
     KeyboardButton("❓ Часті питання")
 )
 
-# Кнопка возврата
 back_to_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(
     KeyboardButton("↩️ Повернутися до меню")
 )
 
-# Команды Telegram
 async def set_commands(bot: Bot):
     commands = [
         BotCommand("start", "Запустити бота"),
@@ -37,24 +43,16 @@ async def set_commands(bot: Bot):
     ]
     await bot.set_my_commands(commands)
 
-# Состояния для оформления заказа
-class OrderForm(StatesGroup):
-    waiting_for_name = State()
-    waiting_for_phone = State()
-    waiting_for_address = State()
-
-# Обработчики
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.reply("Привіт! Обери, що тебе цікавить:", reply_markup=main_menu)
 
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
-    await message.reply("Я бот для демонстрації товарів. Натисни 'Каталог товарів' щоб побачити витяжки та мішки.")
+    await message.reply("Я бот для демонстрації товарів. Натисни 'Каталог товарів', щоб побачити витяжки та мішки.")
 
 @dp.message_handler(lambda message: message.text == "🛍️ Каталог товарів")
 async def send_catalog(message: types.Message):
-    # Товар 1
     photo1 = "https://i.imgur.com/gqXvcI6.jpeg"
     caption1 = (
         "🌬️ *Вмонтована витяжка Mini Messer Pro*\n\n"
@@ -68,7 +66,6 @@ async def send_catalog(message: types.Message):
     )
     await message.answer_photo(photo=photo1, caption=caption1, parse_mode="Markdown", reply_markup=kb1)
 
-    # Товар 2
     photo2 = "https://i.imgur.com/A22rY7L.jpeg"
     caption2 = (
         "🧺 *Мішки для витяжки*\n\n"
@@ -84,55 +81,62 @@ async def send_catalog(message: types.Message):
     )
     await message.answer_photo(photo=photo2, caption=caption2, parse_mode="Markdown", reply_markup=kb2)
 
-    # Кнопка возврата
     await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
 
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith('buy_'))
+@dp.message_handler(lambda message: message.text == "❓ Часті питання")
+async def send_faq(message: types.Message):
+    faq = (
+        "📌 *Часті питання:*\n\n"
+        "❓ _Чи є гарантія на товари?_\n"
+        "✅ Так, є гарантія 1 рік на усі витяжки.\n\n"
+        "❓ _В який срок відправляються товари?_\n"
+        "✅ Відправка замовлення протягом 1-го робочого дня."
+    )
+    await message.answer(faq, parse_mode="Markdown")
+    await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
+
+@dp.callback_query_handler(lambda c: c.data and c.data.startswith("buy_"))
 async def process_buy_callback(callback_query: types.CallbackQuery):
-    product = callback_query.data.split('_')[1]
-    await callback_query.answer(f"Вы выбрали товар: {product}")
-    # Начинаем процесс оформления заказа
+    await callback_query.answer("Починаємо оформлення замовлення!")
     await OrderForm.waiting_for_name.set()
-    await bot.send_message(callback_query.from_user.id, "Пожалуйста, введите ваше имя:")
+    await bot.send_message(callback_query.from_user.id, "Як вас звати?")
 
 @dp.message_handler(state=OrderForm.waiting_for_name)
 async def process_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
     await OrderForm.next()
-    await message.answer("Теперь введите ваш телефон:")
+    await message.answer("Введіть, будь ласка, ваш номер телефону:")
 
 @dp.message_handler(state=OrderForm.waiting_for_phone)
 async def process_phone(message: types.Message, state: FSMContext):
     await state.update_data(phone=message.text)
     await OrderForm.next()
-    await message.answer("Теперь введите ваш адрес (или укажите «Самовивіз» для самовывоза):")
+    await message.answer("Введіть, будь ласка, вашу адресу доставки або напишіть 'Самовивіз':")
 
 @dp.message_handler(state=OrderForm.waiting_for_address)
 async def process_address(message: types.Message, state: FSMContext):
-    await state.update_data(address=message.text)
-    user_data = await state.get_data()
-    name = user_data['name']
-    phone = user_data['phone']
-    address = user_data['address']
+    data = await state.get_data()
+    name = data['name']
+    phone = data['phone']
+    address = message.text
 
-    # Подтверждение заказа
-    await message.answer(f"Вы оформили заказ:\n\n"
-                         f"Имя: {name}\n"
-                         f"Телефон: {phone}\n"
-                         f"Адрес: {address}\n\n"
-                         "Спасибо за заказ!")
-    await state.finish()  # Завершаем процесс оформления заказа
+    await message.answer(
+        f"✅ Замовлення оформлено!\n\n"
+        f"👤 Ім’я: {name}\n"
+        f"📞 Телефон: {phone}\n"
+        f"📍 Адреса: {address}\n\n"
+        "Наш менеджер зв’яжеться з вами найближчим часом!"
+    )
+    await state.finish()
 
 @dp.message_handler(lambda message: message.text == "↩️ Повернутися до меню")
 async def back_to_main_menu(message: types.Message):
     await message.answer("Ти в головному меню:", reply_markup=main_menu)
 
-# Удаление вебхука + установка команд
 async def on_start():
     await set_commands(bot)
     await bot.delete_webhook()
 
-# Запуск
 if __name__ == '__main__':
     import asyncio
     loop = asyncio.get_event_loop()
