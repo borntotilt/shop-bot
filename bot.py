@@ -7,7 +7,7 @@ from aiogram.types import (
 )
 from aiogram.utils import executor
 
-API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'
+API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'  # не забудь вставить свой токен
 
 # Настроим логирование
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +37,7 @@ async def send_help(message: types.Message):
 @dp.message_handler(lambda message: message.text == "🛍️ Каталог товарів")
 async def send_catalog(message: types.Message):
     # 1 товар
-    photo1 = "https://i.imgur.com/XXXXXXXX.jpg"  # вставь ссылку на фото
+    photo1 = "https://i.imgur.com/gqXvcI6.jpeg"
     caption1 = (
         "🌬️ *Вмонтована витяжка Mini Messer Pro*\n\n"
         "✅ Потужність: 65Вт\n"
@@ -51,7 +51,7 @@ async def send_catalog(message: types.Message):
     await message.answer_photo(photo=photo1, caption=caption1, parse_mode="Markdown", reply_markup=kb1)
 
     # 2 товар
-    photo2 = "https://i.imgur.com/YYYYYYYY.jpg"  # вставь вторую ссылку
+    photo2 = "https://i.imgur.com/A22rY7L.jpeg"
     caption2 = (
         "🧺 *Мішки для витяжки*\n\n"
         "✅ В наявності всі розміри\n"
