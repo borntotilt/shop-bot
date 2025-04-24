@@ -6,9 +6,11 @@ from aiogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton,
     BotCommand
 )
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
 from aiogram.utils import executor
 
-API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'  # замени на свой токен
+API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'  # замените на свой токен
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,6 +36,12 @@ async def set_commands(bot: Bot):
         BotCommand("help", "Допомога"),
     ]
     await bot.set_my_commands(commands)
+
+# Состояния для оформления заказа
+class OrderForm(StatesGroup):
+    waiting_for_name = State()
+    waiting_for_phone = State()
+    waiting_for_address = State()
 
 # Обработчики
 @dp.message_handler(commands=['start'])
@@ -79,21 +87,41 @@ async def send_catalog(message: types.Message):
     # Кнопка возврата
     await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
 
-@dp.message_handler(lambda message: message.text == "❓ Часті питання")
-async def send_faq(message: types.Message):
-    faq = (
-        "📌 *Часті питання:*\n\n"
-        "❓ _Чи є гарантія на товари?_\n"
-        "✅ Так, є гарантія 1 рік на усі витяжки.\n\n"
-        "❓ _В який срок відправляються товари?_\n"
-        "✅ Відправка замовлення протягом 1-го робочого дня."
-    )
-    await message.answer(faq, parse_mode="Markdown")
-    await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
-
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith("buy_"))
+@dp.callback_query_handler(lambda c: c.data and c.data.startswith('buy_'))
 async def process_buy_callback(callback_query: types.CallbackQuery):
-    await callback_query.answer("Це демо. Купівля ще не реалізована.")
+    product = callback_query.data.split('_')[1]
+    await callback_query.answer(f"Вы выбрали товар: {product}")
+    # Начинаем процесс оформления заказа
+    await OrderForm.waiting_for_name.set()
+    await bot.send_message(callback_query.from_user.id, "Пожалуйста, введите ваше имя:")
+
+@dp.message_handler(state=OrderForm.waiting_for_name)
+async def process_name(message: types.Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    await OrderForm.next()
+    await message.answer("Теперь введите ваш телефон:")
+
+@dp.message_handler(state=OrderForm.waiting_for_phone)
+async def process_phone(message: types.Message, state: FSMContext):
+    await state.update_data(phone=message.text)
+    await OrderForm.next()
+    await message.answer("Теперь введите ваш адрес (или укажите «Самовивіз» для самовывоза):")
+
+@dp.message_handler(state=OrderForm.waiting_for_address)
+async def process_address(message: types.Message, state: FSMContext):
+    await state.update_data(address=message.text)
+    user_data = await state.get_data()
+    name = user_data['name']
+    phone = user_data['phone']
+    address = user_data['address']
+
+    # Подтверждение заказа
+    await message.answer(f"Вы оформили заказ:\n\n"
+                         f"Имя: {name}\n"
+                         f"Телефон: {phone}\n"
+                         f"Адрес: {address}\n\n"
+                         "Спасибо за заказ!")
+    await state.finish()  # Завершаем процесс оформления заказа
 
 @dp.message_handler(lambda message: message.text == "↩️ Повернутися до меню")
 async def back_to_main_menu(message: types.Message):
