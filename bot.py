@@ -3,7 +3,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton,
-    InlineKeyboardMarkup, InlineKeyboardButton
+    InlineKeyboardMarkup, InlineKeyboardButton,
+    BotCommand
 )
 from aiogram.utils import executor
 
@@ -26,17 +27,23 @@ back_to_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(
     KeyboardButton("↩️ Повернутися до меню")
 )
 
-# Старт
+# Команды Telegram
+async def set_commands(bot: Bot):
+    commands = [
+        BotCommand("start", "Запустити бота"),
+        BotCommand("help", "Допомога"),
+    ]
+    await bot.set_my_commands(commands)
+
+# Обработчики
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.reply("Привіт! Обери, що тебе цікавить:", reply_markup=main_menu)
 
-# Help
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
     await message.reply("Я бот для демонстрації товарів. Натисни 'Каталог товарів' щоб побачити витяжки та мішки.")
 
-# Каталог
 @dp.message_handler(lambda message: message.text == "🛍️ Каталог товарів")
 async def send_catalog(message: types.Message):
     # Товар 1
@@ -72,7 +79,6 @@ async def send_catalog(message: types.Message):
     # Кнопка возврата
     await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
 
-# FAQ
 @dp.message_handler(lambda message: message.text == "❓ Часті питання")
 async def send_faq(message: types.Message):
     faq = (
@@ -83,21 +89,19 @@ async def send_faq(message: types.Message):
         "✅ Відправка замовлення протягом 1-го робочого дня."
     )
     await message.answer(faq, parse_mode="Markdown")
-
     await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
 
-# Обработка inline кнопок (демо)
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith("buy_"))
 async def process_buy_callback(callback_query: types.CallbackQuery):
     await callback_query.answer("Це демо. Купівля ще не реалізована.")
 
-# Возврат в меню
 @dp.message_handler(lambda message: message.text == "↩️ Повернутися до меню")
 async def back_to_main_menu(message: types.Message):
     await message.answer("Ти в головному меню:", reply_markup=main_menu)
 
-# Удаление вебхука
+# Удаление вебхука + установка команд
 async def on_start():
+    await set_commands(bot)
     await bot.delete_webhook()
 
 # Запуск
