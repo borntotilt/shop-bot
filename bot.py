@@ -7,12 +7,10 @@ from aiogram.types import (
 )
 from aiogram.utils import executor
 
-API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'  # не забудь вставить свой токен
+API_TOKEN = '7581874786:AAEHu6aCqlQVfsFBgWp0eX_mvXwSKlw7W44'  # замени на свой токен
 
-# Настроим логирование
 logging.basicConfig(level=logging.INFO)
 
-# Создаем объекты бота и диспетчера
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
@@ -23,24 +21,25 @@ main_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(
     KeyboardButton("❓ Часті питання")
 )
 
-# Кнопка для возврата в главное меню
-back_to_menu_button = KeyboardButton("↩️ Повернутися до меню")
-back_to_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(back_to_menu_button)
+# Кнопка возврата
+back_to_menu = ReplyKeyboardMarkup(resize_keyboard=True).add(
+    KeyboardButton("↩️ Повернутися до меню")
+)
 
-# /start
+# Старт
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.reply("Привіт! Обери, що тебе цікавить:", reply_markup=main_menu)
 
-# /help
+# Help
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
     await message.reply("Я бот для демонстрації товарів. Натисни 'Каталог товарів' щоб побачити витяжки та мішки.")
 
-# Каталог товарів
+# Каталог
 @dp.message_handler(lambda message: message.text == "🛍️ Каталог товарів")
 async def send_catalog(message: types.Message):
-    # 1 товар
+    # Товар 1
     photo1 = "https://i.imgur.com/gqXvcI6.jpeg"
     caption1 = (
         "🌬️ *Вмонтована витяжка Mini Messer Pro*\n\n"
@@ -54,7 +53,7 @@ async def send_catalog(message: types.Message):
     )
     await message.answer_photo(photo=photo1, caption=caption1, parse_mode="Markdown", reply_markup=kb1)
 
-    # 2 товар
+    # Товар 2
     photo2 = "https://i.imgur.com/A22rY7L.jpeg"
     caption2 = (
         "🧺 *Мішки для витяжки*\n\n"
@@ -70,10 +69,10 @@ async def send_catalog(message: types.Message):
     )
     await message.answer_photo(photo=photo2, caption=caption2, parse_mode="Markdown", reply_markup=kb2)
 
-    # Кнопка для возврата в меню
-    await message.answer("Щоб повернутися в головне меню, натисни кнопку нижче.", reply_markup=back_to_menu)
+    # Кнопка возврата
+    await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
 
-# Часті питання
+# FAQ
 @dp.message_handler(lambda message: message.text == "❓ Часті питання")
 async def send_faq(message: types.Message):
     faq = (
@@ -85,27 +84,25 @@ async def send_faq(message: types.Message):
     )
     await message.answer(faq, parse_mode="Markdown")
 
-    # Кнопка для возврата в меню
-    await message.answer("Щоб повернутися в головне меню, натисни кнопку нижче.", reply_markup=back_to_menu)
+    await bot.send_message(message.chat.id, "↩️ Натисни кнопку нижче, щоб повернутися до меню.", reply_markup=back_to_menu)
 
-# Обработчик кнопки "Купити"
+# Обработка inline кнопок (демо)
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith("buy_"))
 async def process_buy_callback(callback_query: types.CallbackQuery):
     await callback_query.answer("Це демо. Купівля ще не реалізована.")
 
-# Обработчик кнопки "Повернутися до меню"
+# Возврат в меню
 @dp.message_handler(lambda message: message.text == "↩️ Повернутися до меню")
-async def back_to_menu(message: types.Message):
-    await message.reply("Ти в головному меню:", reply_markup=main_menu)
+async def back_to_main_menu(message: types.Message):
+    await message.answer("Ти в головному меню:", reply_markup=main_menu)
 
-# Удаление вебхука при старте
+# Удаление вебхука
 async def on_start():
     await bot.delete_webhook()
 
-# Запуск бота
+# Запуск
 if __name__ == '__main__':
     import asyncio
     loop = asyncio.get_event_loop()
     loop.run_until_complete(on_start())
-
     executor.start_polling(dp, skip_updates=True)
